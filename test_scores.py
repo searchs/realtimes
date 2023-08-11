@@ -1,7 +1,12 @@
+from pprint import pprint
 import asyncio
-from main import run_analyze, combine_scores, combine_scores_async
+from faker import Faker
+from main import run_analyze, combine_scores, combine_scores_async, generate_gamers_data
 
-ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+fake = Faker()
+test_users = generate_gamers_data(150)
+ids = test_users.keys()
 
 
 def test_sync():

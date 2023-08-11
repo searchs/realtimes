@@ -1,5 +1,6 @@
-import os
+from pprint import pprint
 import asyncio
+import random
 import time
 from dataclasses import dataclass
 from typing import Dict, List, Callable
@@ -10,8 +11,12 @@ from fastapi import FastAPI
 from starlette.websockets import WebSocket
 import requests
 
+# Dev
+from faker import Faker
+
 app = FastAPI()
 load_dotenv()
+fake = Faker()
 
 config = dotenv_values(".env")
 redis_conn_pool = redis.ConnectionPool(
@@ -30,18 +35,21 @@ class UserInfo:
     score: int
 
 
-users: Dict[int, UserInfo] = {
-    1: UserInfo(1, "Sola", 12),
-    2: UserInfo(2, "Alex", 15),
-    3: UserInfo(2, "Sara", 9),
-    4: UserInfo(2, "Sara", 9),
-    5: UserInfo(2, "Sara", 9),
-    6: UserInfo(2, "Sara", 9),
-    7: UserInfo(2, "Sara", 9),
-    8: UserInfo(2, "Sara", 9),
-    9: UserInfo(2, "Sara", 9),
-    10: UserInfo(2, "Sara", 9),
-}
+def generate_score():
+    return random.randint(6, 22)
+
+
+def generate_gamers_data(gamers_count):
+    gamers = dict()
+    for _ in range(1, gamers_count + 1):
+        gamers[_] = UserInfo(_, fake.unique.first_name(), generate_score())
+    return gamers
+
+
+users = generate_gamers_data(16)
+print("==" * 45)
+pprint(users)
+print("==" * 45)
 
 
 @app.get("/")
