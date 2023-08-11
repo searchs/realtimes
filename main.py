@@ -1,14 +1,27 @@
+import os
 import asyncio
 import time
 from dataclasses import dataclass
 from typing import Dict, List, Callable
-
+from dotenv import load_dotenv, dotenv_values
+import redis.asyncio as redis
 import aiohttp
 from fastapi import FastAPI
+from starlette.websockets import WebSocket
 import requests
 
 app = FastAPI()
+load_dotenv()
 
+config = dotenv_values(".env")
+redis_conn_pool = redis.ConnectionPool(
+    host=config['REDIS_HOST'],
+    port=config['REDIS_PORT'],
+    password=config['REDIS_PASS'])
+from pprint import pprint
+pprint(config)
+def redis_connection() -> redis.Redis:
+    return redis.Redis(connection_pool=redis_conn_pool)
 
 @dataclass
 class UserInfo:
@@ -29,6 +42,18 @@ users: Dict[int, UserInfo] = {
     9: UserInfo(2, "Sara", 9),
     10: UserInfo(2, "Sara", 9),
 }
+
+
+@app.get("/")
+async def root():
+    return {"hola": "Ola"}
+
+
+@app.websocket("/ws")
+async def ws_root(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_text("Hello")
+    await websocket.close()
 
 
 @app.get("/user/{user_id}")
