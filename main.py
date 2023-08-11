@@ -15,13 +15,13 @@ load_dotenv()
 
 config = dotenv_values(".env")
 redis_conn_pool = redis.ConnectionPool(
-    host=config['REDIS_HOST'],
-    port=config['REDIS_PORT'],
-    password=config['REDIS_PASS'])
-from pprint import pprint
-pprint(config)
+    host=config["REDIS_HOST"], port=config["REDIS_PORT"], password=config["REDIS_PASS"]
+)
+
+
 def redis_connection() -> redis.Redis:
     return redis.Redis(connection_pool=redis_conn_pool)
+
 
 @dataclass
 class UserInfo:
