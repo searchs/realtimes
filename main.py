@@ -7,7 +7,7 @@ from typing import Dict, List, Callable
 from dotenv import load_dotenv, dotenv_values
 import redis.asyncio as redis
 import aiohttp
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from starlette.websockets import WebSocket
 import requests
 
@@ -47,9 +47,6 @@ def generate_gamers_data(gamers_count):
 
 
 users = generate_gamers_data(16)
-print("==" * 45)
-pprint(users)
-print("==" * 45)
 
 
 @app.get("/")
@@ -58,9 +55,21 @@ async def root():
 
 
 @app.websocket("/ws")
-async def ws_root(websocket: WebSocket):
+async def ws_root(websocket: WebSocket, rdb: redis.Redis = Depends(redis_connection)):
     await websocket.accept()
-    await websocket.send_text("Hello")
+    # Creating a PuSub instance and listening tot he test_channel
+    ps = rdb.pubsub()
+    await ps.psubscribe("test_channel")
+    # Waiting for new messages from the channel
+    while True:
+        message = await ps.get_message(ignore_subscribe_messages=True, timeout=None)
+        if message is None:
+            continue
+        text_msg = message["data"].decode("utf-8")
+        if text_msg == "stop":
+            await websocket.send_text("closing the connection....")
+            break
+        await websocket.send_text(text_msg)
     await websocket.close()
 
 

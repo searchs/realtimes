@@ -5,7 +5,7 @@ from main import run_analyze, combine_scores, combine_scores_async, generate_gam
 
 
 fake = Faker()
-test_users = generate_gamers_data(150)
+test_users = generate_gamers_data(50)
 ids = test_users.keys()
 
 
