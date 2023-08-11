@@ -51,25 +51,38 @@ users = generate_gamers_data(16)
 
 @app.get("/")
 async def root():
-    return {"hola": "Ola"}
+    return {"appname": "realtime", "version": "0.1.1"}
 
 
 @app.websocket("/ws")
 async def ws_root(websocket: WebSocket, rdb: redis.Redis = Depends(redis_connection)):
     await websocket.accept()
+
     # Creating a PuSub instance and listening tot he test_channel
-    ps = rdb.pubsub()
-    await ps.psubscribe("test_channel")
-    # Waiting for new messages from the channel
-    while True:
-        message = await ps.get_message(ignore_subscribe_messages=True, timeout=None)
-        if message is None:
-            continue
-        text_msg = message["data"].decode("utf-8")
-        if text_msg == "stop":
-            await websocket.send_text("closing the connection....")
-            break
-        await websocket.send_text(text_msg)
+    async def listen_redis():
+        ps = rdb.pubsub()
+        await ps.psubscribe("test_channel")
+        # Waiting for new messages from the channel
+        while True:
+            message = await ps.get_message(ignore_subscribe_messages=True, timeout=None)
+            if message is None:
+                continue
+            text_msg = message["data"].decode("utf-8")
+            if text_msg == "stop":
+                await websocket.send_text("closing the connection....")
+                break
+            await websocket.send_text(text_msg)
+
+    async def listen_ws():
+        while True:
+            msg = await websocket.receive_text()
+            await rdb.publish("test_channel", msg)
+
+    listeners = [listen_ws(), listen_redis()]
+    tasks = [asyncio.create_task(listen_node) for listen_node in listeners]
+    done, pending = await asyncio.wait(
+        tasks, timeout=None, return_when=asyncio.FIRST_COMPLETED
+    )
     await websocket.close()
 
 
@@ -111,6 +124,7 @@ async def combine_scores_async(ids: List[int]) -> None:
 
 
 def run_analyze(method: Callable) -> None:
+    """Check job duration"""
     start = time.time_ns()
     method()
     duration = time.time_ns() - start
